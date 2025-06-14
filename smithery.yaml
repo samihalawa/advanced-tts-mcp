@@ -1,64 +1,61 @@
 version: 1
-runtime: container
 startCommand:
   type: stdio
-build:
-  dockerfile: "Dockerfile"
-  dockerBuildPath: "."
-healthCheck:
-  timeout: 30
-  interval: 10
-  retries: 3
-  startPeriod: 60
-configSchema:
-  type: object
-  properties:
-    lazyInit:
-      type: boolean
-      description: "Enable lazy initialization to speed up startup and prevent timeouts"
-      default: true
-    defaultVoice:
-      type: string
-      description: "Default voice for TTS synthesis"
-      default: "af_heart"
-      enum: ["af_heart", "af_sky", "af_bella", "af_sarah", "af_nicole", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_lewis"]
-    defaultSpeed:
-      type: number
-      description: "Default speech speed"
-      default: 1.0
-      minimum: 0.25
-      maximum: 3.0
-    defaultEmotion:
-      type: string
-      description: "Default voice emotion"
-      default: "neutral"
-      enum: ["neutral", "happy", "excited", "calm", "serious", "casual", "confident"]
-    defaultPacing:
-      type: string
-      description: "Default speech pacing style"
-      default: "natural"
-      enum: ["natural", "conversational", "presentation", "tutorial", "narrative", "fast", "slow"]
-    enableFileOutput:
-      type: boolean
-      description: "Enable audio file output by default"
-      default: false
-    maxTextLength:
-      type: integer
-      description: "Maximum text length per request"
-      default: 10000
-      minimum: 100
-      maximum: 50000
-    debugMode:
-      type: boolean
-      description: "Enable debug logging"
-      default: false
-  required: []
-exampleConfig:
-  lazyInit: true
-  defaultVoice: "af_heart"
-  defaultSpeed: 1.0
-  defaultEmotion: "neutral"
-  defaultPacing: "natural"
-  enableFileOutput: false
-  maxTextLength: 10000
-  debugMode: false
+  configSchema:
+    type: object
+    required: []
+    properties:
+      lazyInit:
+        type: boolean
+        description: "Enable lazy initialization to speed up startup and prevent timeouts"
+        default: true
+      defaultVoice:
+        type: string
+        description: "Default voice for TTS synthesis"
+        default: "af_heart"
+        enum: ["af_heart", "af_sky", "af_bella", "af_sarah", "af_nicole", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_lewis"]
+      defaultSpeed:
+        type: number
+        description: "Default speech speed"
+        default: 1.0
+        minimum: 0.25
+        maximum: 3.0
+      defaultEmotion:
+        type: string
+        description: "Default voice emotion"
+        default: "neutral"
+        enum: ["neutral", "happy", "excited", "calm", "serious", "casual", "confident"]
+      defaultPacing:
+        type: string
+        description: "Default speech pacing style"
+        default: "natural"
+        enum: ["natural", "conversational", "presentation", "tutorial", "narrative", "fast", "slow"]
+      enableFileOutput:
+        type: boolean
+        description: "Enable audio file output by default"
+        default: false
+      maxTextLength:
+        type: integer
+        description: "Maximum text length per request"
+        default: 10000
+        minimum: 100
+        maximum: 50000
+      debugMode:
+        type: boolean
+        description: "Enable debug logging"
+        default: false
+  commandFunction: |-
+    (config) => ({ 
+      command: 'node', 
+      args: ['dist/index.js'], 
+      env: { 
+        LAZY_INIT: config.lazyInit ? 'true' : 'false',
+        DEFAULT_VOICE: config.defaultVoice || 'af_heart',
+        DEFAULT_SPEED: config.defaultSpeed?.toString() || '1.0',
+        DEFAULT_EMOTION: config.defaultEmotion || 'neutral',
+        DEFAULT_PACING: config.defaultPacing || 'natural',
+        ENABLE_FILE_OUTPUT: config.enableFileOutput ? 'true' : 'false',
+        MAX_TEXT_LENGTH: config.maxTextLength?.toString() || '10000',
+        DEBUG_MODE: config.debugMode ? 'true' : 'false'
+      } 
+    })
