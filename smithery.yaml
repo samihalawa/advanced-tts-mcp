@@ -1,0 +1,54 @@
+version: 1
+runtime: container
+startCommand:
+  type: http
+build:
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."
+configSchema:
+  type: object
+  properties:
+    defaultVoice:
+      type: string
+      description: "Default voice for TTS synthesis"
+      default: "af_heart"
+      enum: ["af_heart", "af_sky", "af_bella", "af_sarah", "af_nicole", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_lewis"]
+    defaultSpeed:
+      type: number
+      description: "Default speech speed"
+      default: 1.0
+      minimum: 0.25
+      maximum: 3.0
+    defaultEmotion:
+      type: string
+      description: "Default voice emotion"
+      default: "neutral"
+      enum: ["neutral", "happy", "excited", "calm", "serious", "casual", "confident"]
+    defaultPacing:
+      type: string
+      description: "Default speech pacing style"
+      default: "natural"
+      enum: ["natural", "conversational", "presentation", "tutorial", "narrative", "fast", "slow"]
+    enableFileOutput:
+      type: boolean
+      description: "Enable audio file output by default"
+      default: false
+    maxTextLength:
+      type: integer
+      description: "Maximum text length per request"
+      default: 10000
+      minimum: 100
+      maximum: 50000
+    debugMode:
+      type: boolean
+      description: "Enable debug logging"
+      default: false
+  required: []
+exampleConfig:
+  defaultVoice: "af_heart"
+  defaultSpeed: 1.0
+  defaultEmotion: "neutral"
+  defaultPacing: "natural"
+  enableFileOutput: false
+  maxTextLength: 10000
+  debugMode: false

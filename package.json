@@ -1,0 +1,149 @@
+{
+  "name": "advanced-tts-mcp",
+  "version": "1.0.0",
+  "description": "Advanced TTS MCP Server - High-quality neural voice synthesis with enhanced features and streaming capabilities",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "advanced-tts-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "smithery.yaml",
+    "Dockerfile",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/typescript/index.ts",
+    "start": "node dist/index.js",
+    "start:stdio": "node dist/index.js",
+    "start:http": "MCP_TRANSPORT=http PORT=3000 node dist/index.js",
+    "test": "npx @modelcontextprotocol/inspector dist/index.js",
+    "test:http": "curl -f http://localhost:3000/mcp || echo 'HTTP test failed'",
+    "prepare": "npm run build",
+    "clean": "rm -rf dist",
+    "lint": "echo 'Linting not configured'",
+    "docker:build": "docker build -t advanced-tts-mcp .",
+    "docker:run": "docker run -p 3000:3000 -e MCP_TRANSPORT=http advanced-tts-mcp",
+    "smithery:dev": "npx @smithery/cli dev",
+    "smithery:build": "npx @smithery/cli build",
+    "smithery:test": "npx @smithery/cli playground"
+  },
+  "keywords": [
+    "mcp",
+    "tts",
+    "text-to-speech",
+    "kokoro",
+    "neural-speech",
+    "ai",
+    "voice-synthesis",
+    "smithery",
+    "audio",
+    "speech",
+    "natural-voice"
+  ],
+  "author": {
+    "name": "Sami Halawa",
+    "email": "sami@example.com",
+    "url": "https://github.com/samihalawa"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samihalawa/advanced-tts-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/samihalawa/advanced-tts-mcp/issues"
+  },
+  "homepage": "https://github.com/samihalawa/advanced-tts-mcp#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3",
+    "tsx": "^4.16.2",
+    "@smithery/cli": "^0.1.0"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/inspector": "^0.6.0"
+  },
+  "optionalDependencies": {
+    "@smithery/sdk": "^0.1.0"
+  },
+  "mcp": {
+    "server": {
+      "name": "advanced-tts-mcp",
+      "version": "1.0.0",
+      "description": "Advanced TTS MCP Server with Kokoro neural voices",
+      "capabilities": {
+        "tools": true,
+        "resources": true,
+        "prompts": false
+      },
+      "transports": ["stdio", "http"],
+      "entry": {
+        "stdio": "dist/index.js",
+        "http": "dist/index.js"
+      }
+    }
+  },
+  "smithery": {
+    "configSchema": {
+      "type": "object",
+      "properties": {
+        "defaultVoice": {
+          "type": "string",
+          "description": "Default voice for TTS synthesis",
+          "default": "af_heart",
+          "enum": ["af_heart", "af_sky", "af_bella", "af_sarah", "af_nicole", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_lewis"]
+        },
+        "defaultSpeed": {
+          "type": "number",
+          "description": "Default speech speed",
+          "default": 1.0,
+          "minimum": 0.25,
+          "maximum": 3.0
+        },
+        "defaultEmotion": {
+          "type": "string",
+          "description": "Default voice emotion",
+          "default": "neutral",
+          "enum": ["neutral", "happy", "excited", "calm", "serious", "casual", "confident"]
+        },
+        "enableFileOutput": {
+          "type": "boolean",
+          "description": "Enable audio file output by default",
+          "default": false
+        },
+        "debugMode": {
+          "type": "boolean",
+          "description": "Enable debug logging",
+          "default": false
+        }
+      }
+    },
+    "exampleConfig": {
+      "defaultVoice": "af_heart",
+      "defaultSpeed": 1.0,
+      "defaultEmotion": "neutral",
+      "enableFileOutput": false,
+      "debugMode": false
+    },
+    "tags": ["tts", "voice", "audio", "synthesis", "ai", "neural"],
+    "category": "AI & ML",
+    "maturity": "stable"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/samihalawa"
+  }
+}

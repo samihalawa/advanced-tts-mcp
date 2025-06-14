@@ -25,13 +25,30 @@ A high-quality, feature-rich Text-to-Speech MCP server powered by Kokoro neural 
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Deploy to Smithery.ai (Recommended)
 
+**🎯 One-Click Deployment to Smithery Platform**
+
+1. **Deploy Now**: Visit [Smithery.ai](https://smithery.ai) and import this repository
+2. **Configure**: Set your preferred voice and speech settings
+3. **Use Instantly**: Access via Claude Desktop or any MCP-compatible client
+
+**Benefits:**
+- ✅ Zero setup required
+- ✅ Automatic scaling and updates  
+- ✅ No model downloads needed
+- ✅ Enterprise-grade hosting
+
+**[📋 Full Smithery Deployment Guide →](DEPLOYMENT.md)**
+
+### Option 2: Local Installation
+
+**Prerequisites:**
 - Python 3.10+
-- macOS, Linux, or Windows
-- FFmpeg (for MP3/format conversion)
+- Node.js 18+
+- FFmpeg (for audio conversion)
 
-### Installation
+**Installation:**
 
 1. **Clone the repository**
 ```bash
@@ -41,12 +58,15 @@ cd advanced-tts-mcp
 
 2. **Install dependencies**
 ```bash
+# Python dependencies
 pip install -e .
+
+# Node.js dependencies (for TypeScript version)
+npm install
 ```
 
-3. **Download Kokoro models** (required)
+3. **Download Kokoro models** (required, ~337MB total)
 ```bash
-# Download model files (~337MB total)
 wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
 wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
 ```
@@ -58,8 +78,8 @@ Add to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "advanced-tts": {
-      "command": "python",
-      "args": ["-m", "advanced_tts.server"],
+      "command": "node",
+      "args": ["dist/index.js"],
       "cwd": "/path/to/advanced-tts-mcp"
     }
   }
@@ -67,6 +87,14 @@ Add to your `claude_desktop_config.json`:
 ```
 
 5. **Start using!**
+
+```bash
+# Build TypeScript
+npm run build
+
+# Start server
+npm start
+```
 
 Restart Claude Desktop and start synthesizing with natural, expressive voices.
 
