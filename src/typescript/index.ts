@@ -521,6 +521,7 @@ function createServer() {
       capabilities: {
         tools: {},
         resources: {},
+        prompts: {},
       },
     }
   );
@@ -1205,9 +1206,8 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    console.error('Server error:', error);
-    process.exit(1);
-  });
-}
+// Run the server
+main().catch((error) => {
+  console.error('Server error:', error);
+  process.exit(1);
+});
