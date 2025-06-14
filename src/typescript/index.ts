@@ -392,6 +392,10 @@ class AdvancedTTSServer {
         volume: volume || 1.0
       };
 
+      if (!this.ttsEngine) {
+        throw new Error('TTS engine not initialized');
+      }
+      
       const result = await this.ttsEngine.batchSynthesize(
         segments,
         voiceConfig,
@@ -408,6 +412,9 @@ class AdvancedTTSServer {
       let mergedAudioPath: string | undefined;
       if (saveFile && mergeOutput && result.mergedAudio) {
         const mergedFilename = filename || `batch_${batchId}`;
+        if (!this.ttsEngine) {
+          throw new Error('TTS engine not initialized');
+        }
         mergedAudioPath = await this.ttsEngine.saveAudioToFile(
           result.mergedAudio,
           mergedFilename,
