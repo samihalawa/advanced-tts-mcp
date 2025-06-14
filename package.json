@@ -9,7 +9,7 @@
   },
   "files": [
     "dist/**/*",
-    "src/**/*",
+    "src/typescript/**/*",
     "smithery.yaml",
     "Dockerfile",
     "README.md",

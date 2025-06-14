@@ -1,6 +1,6 @@
 # Advanced TTS MCP Server
 
-A high-quality, feature-rich Text-to-Speech MCP server powered by Kokoro neural voices. Designed for professional applications requiring natural, expressive speech synthesis with advanced controls.
+A high-quality, feature-rich Text-to-Speech MCP server with native TypeScript implementation. Designed for professional applications requiring natural, expressive speech synthesis with advanced controls and zero external dependencies.
 
 ## ✨ Features
 
@@ -44,9 +44,7 @@ A high-quality, feature-rich Text-to-Speech MCP server powered by Kokoro neural 
 ### Option 2: Local Installation
 
 **Prerequisites:**
-- Python 3.10+
 - Node.js 18+
-- FFmpeg (for audio conversion)
 
 **Installation:**
 
@@ -58,20 +56,10 @@ cd advanced-tts-mcp
 
 2. **Install dependencies**
 ```bash
-# Python dependencies
-pip install -e .
-
-# Node.js dependencies (for TypeScript version)
 npm install
 ```
 
-3. **Download Kokoro models** (required, ~337MB total)
-```bash
-wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
-wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
-```
-
-4. **Configure Claude Desktop**
+3. **Configure Claude Desktop**
 
 Add to your `claude_desktop_config.json`:
 ```json
@@ -86,7 +74,7 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-5. **Start using!**
+4. **Start using!**
 
 ```bash
 # Build TypeScript
