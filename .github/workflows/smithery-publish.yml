@@ -1,0 +1,77 @@
+name: Publish to Smithery
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  publish-smithery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Create Smithery Package
+        run: |
+          TEMP_DIR=$(mktemp -d)
+          PACKAGE_DIR="$TEMP_DIR/advanced-tts-mcp"
+          mkdir -p "$PACKAGE_DIR"
+          
+          cp -R dist "$PACKAGE_DIR/"
+          cp smithery.yaml "$PACKAGE_DIR/"
+          cp package.json README.md LICENSE "$PACKAGE_DIR/"
+          
+          # Create Smithery metadata
+          cat > "$PACKAGE_DIR/smithery.json" << EOL
+          {
+            "name": "advanced-tts-mcp",
+            "version": "$(node -p "require('./package.json').version")",
+            "description": "Advanced TTS Server with Kokoro neural voices",
+            "smithery": {
+              "displayName": "Advanced TTS Server",
+              "description": "Convert text into natural, expressive speech using high-quality Kokoro neural voices",
+              "startCommand": {
+                "type": "stdio",
+                "command": "node",
+                "args": ["dist/index.js"]
+              }
+            }
+          }
+          EOL
+          
+          cd "$TEMP_DIR"
+          tar -czf advanced-tts-mcp.tgz advanced-tts-mcp
+          
+          cd "$GITHUB_WORKSPACE"
+          mkdir -p artifacts
+          mv "$TEMP_DIR/advanced-tts-mcp.tgz" artifacts/
+          
+          rm -rf "$TEMP_DIR"
+      
+      - name: Install Smithery CLI
+        run: npm install -g @smithery/cli
+      
+      - name: Publish to Smithery
+        run: |
+          npx @smithery/cli install artifacts/advanced-tts-mcp.tgz --id advanced-tts-mcp --client claude --key ${{ secrets.SMITHERY_API_KEY }}
+          
+          if [ $? -ne 0 ]; then
+            curl -X POST 'https://api.smithery.ai/v1/teams/default/servers' \
+              -H "Authorization: Bearer ${{ secrets.SMITHERY_API_KEY }}" \
+              -H 'Content-Type: multipart/form-data' \
+              -F "package=@artifacts/advanced-tts-mcp.tgz" \
+              -F 'id=advanced-tts-mcp' \
+              -F 'description=Advanced TTS Server with Kokoro neural voices'
+          fi
