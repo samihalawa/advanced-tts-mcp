@@ -31,6 +31,7 @@ import { NativeTTSEngine } from './native-tts.js';
 
 // Configuration schema for Smithery deployment
 const ConfigSchema = z.object({
+  lazyInit: z.boolean().default(true),
   defaultVoice: z.string().default('af_heart'),
   defaultSpeed: z.number().min(0.25).max(3.0).default(1.0),
   defaultEmotion: z.enum(['neutral', 'happy', 'excited', 'calm', 'serious', 'casual', 'confident']).default('neutral'),
@@ -85,13 +86,19 @@ class AdvancedTTSServer {
   private config: Config;
   private activeRequests: Map<string, any> = new Map();
   private outputDir: string;
-  private ttsEngine: NativeTTSEngine;
+  private ttsEngine: NativeTTSEngine | null = null;
+  private initialized: boolean = false;
 
   constructor(config: Config) {
     this.config = config;
     this.outputDir = join(tmpdir(), 'advanced-tts-mcp');
-    this.ttsEngine = new NativeTTSEngine();
-    this.ensureOutputDir();
+    
+    // Only initialize immediately if lazy loading is disabled
+    if (!this.config.lazyInit) {
+      this.ttsEngine = new NativeTTSEngine();
+      this.ensureOutputDir();
+      this.initialized = true;
+    }
   }
 
   private async ensureOutputDir(): Promise<void> {
@@ -100,6 +107,20 @@ class AdvancedTTSServer {
     } catch (error) {
       if (this.config.debugMode) {
         console.error('Failed to create output directory:', error);
+      }
+    }
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initialized) {
+      if (this.config.debugMode) {
+        console.error('Lazy initializing TTS engine...');
+      }
+      this.ttsEngine = new NativeTTSEngine();
+      await this.ensureOutputDir();
+      this.initialized = true;
+      if (this.config.debugMode) {
+        console.error('TTS engine initialized successfully');
       }
     }
   }
@@ -161,6 +182,11 @@ class AdvancedTTSServer {
     const requestId = randomUUID();
     
     try {
+      // Ensure TTS engine is available
+      if (!this.ttsEngine) {
+        throw new Error('TTS engine not initialized');
+      }
+
       // Use native TypeScript TTS engine
       const voiceConfig = {
         voiceId,
@@ -229,6 +255,9 @@ class AdvancedTTSServer {
       saveFile = this.config.enableFileOutput,
       filename
     } = params;
+
+    // Ensure TTS engine is initialized
+    await this.ensureInitialized();
 
     // Input validation and sanitization
     if (!text || typeof text !== 'string') {

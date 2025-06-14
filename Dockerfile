@@ -33,15 +33,6 @@ RUN mkdir -p /app/audio_output && \
 
 # Configure for deployment
 ENV NODE_ENV=production
-ENV MCP_TRANSPORT=http
-ENV PORT=3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/mcp || exit 1
-
-# Expose port
-EXPOSE 3000
 
 # Start the server
 CMD ["node", "dist/index.js"]

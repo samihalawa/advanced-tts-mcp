@@ -1,13 +1,22 @@
 version: 1
 runtime: container
 startCommand:
-  type: http
+  type: stdio
 build:
   dockerfile: "Dockerfile"
   dockerBuildPath: "."
+healthCheck:
+  timeout: 30
+  interval: 10
+  retries: 3
+  startPeriod: 60
 configSchema:
   type: object
   properties:
+    lazyInit:
+      type: boolean
+      description: "Enable lazy initialization to speed up startup and prevent timeouts"
+      default: true
     defaultVoice:
       type: string
       description: "Default voice for TTS synthesis"
@@ -45,6 +54,7 @@ configSchema:
       default: false
   required: []
 exampleConfig:
+  lazyInit: true
   defaultVoice: "af_heart"
   defaultSpeed: 1.0
   defaultEmotion: "neutral"
