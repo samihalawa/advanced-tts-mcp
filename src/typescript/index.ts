@@ -21,11 +21,11 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
+import { NativeTTSEngine } from './native-tts.js';
 
 // Configuration schema for Smithery deployment
 const ConfigSchema = z.object({
@@ -83,10 +83,12 @@ class AdvancedTTSServer {
   private config: Config;
   private activeRequests: Map<string, any> = new Map();
   private outputDir: string;
+  private ttsEngine: NativeTTSEngine;
 
   constructor(config: Config) {
     this.config = config;
     this.outputDir = join(tmpdir(), 'advanced-tts-mcp');
+    this.ttsEngine = new NativeTTSEngine();
     this.ensureOutputDir();
   }
 
@@ -143,10 +145,13 @@ class AdvancedTTSServer {
     return Math.max(0.25, Math.min(3.0, finalSpeed));
   }
 
-  private async synthesizeWithPython(
+  private async synthesizeWithNativeTTS(
     text: string,
     voiceId: string,
     speed: number,
+    emotion: string,
+    pacing: string,
+    volume: number,
     outputFormat: string,
     saveFile: boolean,
     filename?: string
@@ -154,112 +159,47 @@ class AdvancedTTSServer {
     const requestId = randomUUID();
     
     try {
-      // Call Python TTS implementation
-      const pythonScript = `
-import sys
-import os
-import asyncio
-import tempfile
-import json
-sys.path.append('${join(process.cwd(), 'src/advanced_tts')}')
+      // Use native TypeScript TTS engine
+      const voiceConfig = {
+        voiceId,
+        speed,
+        emotion,
+        pacing,
+        volume
+      };
 
-from engine import KokoroEngine
-from models import TTSRequest, VoiceConfig, VoiceEmotion, PacingStyle, AudioFormat
+      const result = await this.ttsEngine.synthesizeText(text, voiceConfig, outputFormat);
+      
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error,
+          requestId
+        };
+      }
 
-async def synthesize():
-    try:
-        engine = KokoroEngine()
-        await engine.initialize()
-        
-        voice_config = VoiceConfig(
-            voice_id="${voiceId}",
-            speed=${speed},
-            emotion=VoiceEmotion.NEUTRAL,
-            pacing=PacingStyle.NATURAL,
-            volume=1.0
-        )
-        
-        request = TTSRequest(
-            text="${text.replace(/"/g, '\\"').replace(/\n/g, '\\n')}",
-            voice_config=voice_config,
-            output_format=AudioFormat.${outputFormat.toUpperCase()},
-            save_file=${saveFile},
-            filename="${filename || ''}"
-        )
-        
-        segment = await engine.synthesize_text(request)
-        
-        # Save audio to file
-        output_path = "${join(this.outputDir, filename || `${requestId}.${outputFormat}`)}"
-        with open(output_path, 'wb') as f:
-            f.write(segment.audio_data)
-        
-        result = {
-            "success": True,
-            "audioPath": output_path,
-            "duration": segment.duration,
-            "requestId": "${requestId}"
-        }
-        print(json.dumps(result))
-        
-    except Exception as e:
-        result = {
-            "success": False,
-            "error": str(e),
-            "requestId": "${requestId}"
-        }
-        print(json.dumps(result))
+      let audioPath: string | undefined;
+      
+      if (saveFile && result.audioSegment) {
+        const fileBaseName = filename || `tts_${requestId}`;
+        audioPath = await this.ttsEngine.saveAudioToFile(
+          result.audioSegment,
+          fileBaseName,
+          outputFormat
+        );
+      }
 
-asyncio.run(synthesize())
-`;
-
-      const tempScriptPath = join(tmpdir(), `tts_${requestId}.py`);
-      await fs.writeFile(tempScriptPath, pythonScript);
-
-      return new Promise((resolve) => {
-        const python = spawn('python', [tempScriptPath], {
-          cwd: process.cwd(),
-          stdio: ['pipe', 'pipe', 'pipe']
-        });
-
-        let output = '';
-        let error = '';
-
-        python.stdout.on('data', (data) => {
-          output += data.toString();
-        });
-
-        python.stderr.on('data', (data) => {
-          error += data.toString();
-        });
-
-        python.on('close', async (code) => {
-          // Cleanup temp script
-          try {
-            await fs.unlink(tempScriptPath);
-          } catch {}
-
-          if (code === 0 && output.trim()) {
-            try {
-              const result = JSON.parse(output.trim());
-              resolve({ ...result, requestId });
-            } catch {
-              resolve({ success: false, error: 'Failed to parse output', requestId });
-            }
-          } else {
-            resolve({ 
-              success: false, 
-              error: error || `Python process exited with code ${code}`, 
-              requestId 
-            });
-          }
-        });
-      });
+      return {
+        success: true,
+        audioPath,
+        duration: result.audioSegment?.duration,
+        requestId
+      };
 
     } catch (error) {
       return { 
         success: false, 
-        error: `Synthesis failed: ${error}`, 
+        error: `Native TTS synthesis failed: ${error}`, 
         requestId 
       };
     }
@@ -288,22 +228,59 @@ asyncio.run(synthesize())
       filename
     } = params;
 
-    // Validate text length
+    // Input validation and sanitization
+    if (!text || typeof text !== 'string') {
+      throw new Error('Text must be a non-empty string');
+    }
+
     if (text.length > this.config.maxTextLength) {
       throw new Error(`Text length (${text.length}) exceeds maximum allowed (${this.config.maxTextLength})`);
     }
 
+    // Validate voice ID
+    if (voiceId && !Object.keys(AvailableVoices).includes(voiceId)) {
+      throw new Error(`Invalid voice ID: ${voiceId}`);
+    }
+
+    // Validate speed range
+    if (speed < 0.25 || speed > 3.0) {
+      throw new Error(`Speed ${speed} out of range (0.25-3.0)`);
+    }
+
+    // Validate volume range
+    if (volume < 0.1 || volume > 2.0) {
+      throw new Error(`Volume ${volume} out of range (0.1-2.0)`);
+    }
+
+    // Validate output format
+    if (!AudioFormats.includes(outputFormat as any)) {
+      throw new Error(`Unsupported output format: ${outputFormat}`);
+    }
+
+    // Sanitize text input
+    const sanitizedText = text
+      .replace(/[<>]/g, '') // Remove HTML-like tags
+      .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+      .trim();
+
+    if (!sanitizedText) {
+      throw new Error('Text is empty after sanitization');
+    }
+
     // Enhance text for natural speech
-    const enhancedText = this.enhanceTextForSpeech(text, emotion, pacing);
+    const enhancedText = this.enhanceTextForSpeech(sanitizedText, emotion, pacing);
     
     // Calculate final speed
     const finalSpeed = this.calculateFinalSpeed(speed, emotion, pacing);
 
-    // Synthesize using Python backend
-    const result = await this.synthesizeWithPython(
+    // Synthesize using native TypeScript TTS engine
+    const result = await this.synthesizeWithNativeTTS(
       enhancedText,
       voiceId,
       finalSpeed,
+      emotion,
+      pacing,
+      volume,
       outputFormat,
       saveFile,
       filename
@@ -359,48 +336,80 @@ asyncio.run(synthesize())
       filename
     } = params;
 
-    const batchId = randomUUID();
-    const results = [];
-    let totalDuration = 0;
-
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      const segmentFilename = mergeOutput ? undefined : `${batchId}_segment_${i + 1}.${outputFormat}`;
-      
-      const result = await this.synthesizeSpeech({
-        text: segment,
-        voiceId,
-        speed,
-        emotion,
-        pacing,
-        volume,
-        outputFormat,
-        saveFile: saveFile && !mergeOutput,
-        filename: segmentFilename
-      });
-
-      results.push(result);
-      totalDuration += result.duration || 0;
-      
-      // Add pause duration (except for last segment)
-      if (i < segments.length - 1) {
-        totalDuration += segmentPause;
-      }
+    // Input validation
+    if (!Array.isArray(segments) || segments.length === 0) {
+      throw new Error('Segments must be a non-empty array');
     }
 
-    // TODO: Implement audio merging for mergeOutput=true
-    // This would require additional audio processing capabilities
+    if (segments.length > 100) {
+      throw new Error(`Too many segments: ${segments.length} (max 100)`);
+    }
 
-    return {
-      success: true,
-      batchId,
-      segmentCount: segments.length,
-      totalDuration,
-      segments: results,
-      mergedOutput: mergeOutput,
-      outputFormat,
-      message: `Successfully synthesized ${segments.length} segments`
-    };
+    if (segmentPause < 0 || segmentPause > 5.0) {
+      throw new Error(`Segment pause ${segmentPause} out of range (0.0-5.0)`);
+    }
+
+    const batchId = randomUUID();
+
+    try {
+      // Use native TTS engine for batch processing
+      const voiceConfig = {
+        voiceId: voiceId || this.config.defaultVoice,
+        speed: speed || this.config.defaultSpeed,
+        emotion: emotion || this.config.defaultEmotion,
+        pacing: pacing || this.config.defaultPacing,
+        volume: volume || 1.0
+      };
+
+      const result = await this.ttsEngine.batchSynthesize(
+        segments,
+        voiceConfig,
+        mergeOutput,
+        segmentPause,
+        outputFormat
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Batch synthesis failed');
+      }
+
+      // Save merged output if requested
+      let mergedAudioPath: string | undefined;
+      if (saveFile && mergeOutput && result.mergedAudio) {
+        const mergedFilename = filename || `batch_${batchId}`;
+        mergedAudioPath = await this.ttsEngine.saveAudioToFile(
+          result.mergedAudio,
+          mergedFilename,
+          outputFormat
+        );
+      }
+
+      // Track request
+      this.activeRequests.set(batchId, {
+        status: 'completed',
+        result: {
+          batchId,
+          segmentCount: segments.length,
+          mergeOutput,
+          mergedAudioPath
+        }
+      });
+
+      return {
+        success: true,
+        batchId,
+        segmentCount: segments.length,
+        totalDuration: result.mergedAudio?.duration || 0,
+        segments: result.segments,
+        mergeOutput,
+        mergedAudioPath,
+        outputFormat,
+        message: `Successfully synthesized ${segments.length} segments`
+      };
+
+    } catch (error) {
+      throw new Error(`Batch synthesis failed: ${error}`);
+    }
   }
 
   getVoices() {
@@ -719,7 +728,7 @@ function createServer() {
                      `**Segments:** ${batchResult.segmentCount}\n` +
                      `**Total Duration:** ${batchResult.totalDuration.toFixed(2)}s\n` +
                      `**Format:** ${batchResult.outputFormat.toUpperCase()}\n` +
-                     `**Merged:** ${batchResult.mergedOutput ? 'Yes' : 'No'}\n\n` +
+                     `**Merged:** ${batchResult.mergeOutput ? 'Yes' : 'No'}\n\n` +
                      `${batchResult.message}`,
               },
             ],
@@ -757,7 +766,7 @@ function createServer() {
           };
 
         case 'get_status':
-          const status = ttsServer.getStatus(args.requestId as string);
+          const status = ttsServer.getStatus(args?.requestId as string);
           return {
             content: [
               {
@@ -772,7 +781,7 @@ function createServer() {
         case 'list_output_files':
           const fileList = await ttsServer.listOutputFiles();
           if (fileList.success) {
-            const files = fileList.files.map(f => 
+            const files = fileList.files?.map(f => 
               `**${f.filename}** (${(f.size / 1024).toFixed(1)}KB) - ${f.format?.toUpperCase()}`
             ).join('\n');
             
@@ -920,7 +929,7 @@ function createServer() {
 // HTTP server for Smithery hosting
 async function createHttpServer() {
   const { createServer: createHttpServer } = await import('http');
-  const server = createMcpServer();
+  const server = createServer();
 
   const httpServer = createHttpServer(async (req, res) => {
     if (req.method === 'GET' && req.url?.startsWith('/mcp')) {
