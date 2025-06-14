@@ -28,9 +28,9 @@
     "lint": "echo 'Linting not configured'",
     "docker:build": "docker build -t advanced-tts-mcp .",
     "docker:run": "docker run -p 3000:3000 -e MCP_TRANSPORT=http advanced-tts-mcp",
-    "smithery:dev": "npx @smithery/cli dev",
-    "smithery:build": "npx @smithery/cli build",
-    "smithery:test": "npx @smithery/cli playground"
+    "smithery:dev": "echo 'Smithery CLI not available'",
+    "smithery:build": "echo 'Smithery CLI not available'",
+    "smithery:test": "echo 'Smithery CLI not available'"
   },
   "keywords": [
     "mcp",
@@ -70,15 +70,12 @@
   "devDependencies": {
     "@types/node": "^20.11.24",
     "typescript": "^5.3.3",
-    "tsx": "^4.16.2",
-    "@smithery/cli": "^0.1.0"
+    "tsx": "^4.16.2"
   },
   "peerDependencies": {
     "@modelcontextprotocol/inspector": "^0.6.0"
   },
-  "optionalDependencies": {
-    "@smithery/sdk": "^0.1.0"
-  },
+  "optionalDependencies": {},
   "mcp": {
     "server": {
       "name": "advanced-tts-mcp",

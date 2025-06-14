@@ -15,15 +15,14 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Install all dependencies (including dev dependencies for build)
-RUN npm ci
-
 # Copy source code
 COPY src/ ./src/
 COPY smithery.yaml ./
 
-# Build TypeScript
-RUN npm run build
+# Install all dependencies (including dev dependencies for build)
+RUN npm install
+
+# Build TypeScript is already handled by prepare script in npm install
 
 # Remove dev dependencies after build
 RUN npm prune --production
