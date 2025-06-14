@@ -19,6 +19,8 @@ import {
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
@@ -920,6 +922,209 @@ function createServer() {
 
       default:
         throw new Error(`Unknown resource: ${uri}`);
+    }
+  });
+
+  // Register prompts
+  server.setRequestHandler(ListPromptsRequestSchema, async () => {
+    return {
+      prompts: [
+        {
+          name: 'create_podcast_intro',
+          description: 'Generate a professional podcast introduction with warm, engaging tone',
+          arguments: [
+            {
+              name: 'podcast_name',
+              description: 'Name of the podcast',
+              required: true,
+            },
+            {
+              name: 'host_name',
+              description: 'Name of the podcast host',
+              required: true,
+            },
+            {
+              name: 'episode_topic',
+              description: 'Topic or theme of this episode',
+              required: false,
+            },
+          ],
+        },
+        {
+          name: 'create_tutorial_narration',
+          description: 'Create clear, educational narration for tutorials and instructional content',
+          arguments: [
+            {
+              name: 'topic',
+              description: 'The subject being taught',
+              required: true,
+            },
+            {
+              name: 'difficulty_level',
+              description: 'Beginner, intermediate, or advanced',
+              required: false,
+            },
+            {
+              name: 'key_steps',
+              description: 'Main steps or concepts to cover',
+              required: false,
+            },
+          ],
+        },
+        {
+          name: 'create_marketing_copy',
+          description: 'Generate persuasive marketing audio with confident, professional tone',
+          arguments: [
+            {
+              name: 'product_name',
+              description: 'Name of the product or service',
+              required: true,
+            },
+            {
+              name: 'key_benefits',
+              description: 'Main benefits or features to highlight',
+              required: true,
+            },
+            {
+              name: 'call_to_action',
+              description: 'What action you want listeners to take',
+              required: false,
+            },
+          ],
+        },
+        {
+          name: 'create_accessibility_description',
+          description: 'Generate clear audio descriptions for visual content accessibility',
+          arguments: [
+            {
+              name: 'content_type',
+              description: 'Type of visual content (image, video, chart, etc.)',
+              required: true,
+            },
+            {
+              name: 'key_elements',
+              description: 'Important visual elements to describe',
+              required: true,
+            },
+          ],
+        },
+      ],
+    };
+  });
+
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    switch (name) {
+      case 'create_podcast_intro':
+        const podcastName = args?.podcast_name || 'Your Podcast';
+        const hostName = args?.host_name || 'Your Host';
+        const episodeTopic = args?.episode_topic || 'today\'s fascinating topic';
+        
+        return {
+          description: 'Professional podcast introduction',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `Create a warm, engaging podcast introduction using the advanced TTS system. Use voice 'af_heart' with 'happy' emotion and 'conversational' pacing.
+
+Text to synthesize: "Welcome to ${podcastName}! I'm your host ${hostName}, and today we're diving into ${episodeTopic}. Whether you're a longtime listener or joining us for the first time, you're in for a treat. Let's get started!"
+
+Use these settings:
+- Voice: af_heart (warm, friendly female voice)
+- Emotion: happy
+- Pacing: conversational  
+- Speed: 1.0
+- Save the audio file for podcast production`
+              }
+            }
+          ]
+        };
+
+      case 'create_tutorial_narration':
+        const topic = args?.topic || 'this subject';
+        const difficulty = args?.difficulty_level || 'beginner';
+        const steps = args?.key_steps || 'the essential concepts';
+        
+        return {
+          description: 'Educational tutorial narration',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `Create clear, educational narration for a ${difficulty}-level tutorial on ${topic}. Use voice 'am_adam' with 'calm' emotion and 'tutorial' pacing.
+
+Text to synthesize: "In this tutorial, we'll learn about ${topic}. This is designed for ${difficulty} learners, so we'll take our time and cover ${steps} step by step. By the end, you'll have a solid understanding of the fundamentals. Let's begin with the basics."
+
+Use these settings:
+- Voice: am_adam (confident, authoritative male voice)
+- Emotion: calm
+- Pacing: tutorial (slower, educational pace)
+- Speed: 0.9
+- Save the audio file for educational content`
+              }
+            }
+          ]
+        };
+
+      case 'create_marketing_copy':
+        const productName = args?.product_name || 'our amazing product';
+        const benefits = args?.key_benefits || 'incredible value and quality';
+        const cta = args?.call_to_action || 'try it today';
+        
+        return {
+          description: 'Persuasive marketing audio',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `Create persuasive marketing audio for ${productName}. Use voice 'af_sarah' with 'confident' emotion and 'presentation' pacing.
+
+Text to synthesize: "Discover ${productName} - the solution you've been waiting for! With ${benefits}, it's designed to transform your experience. Don't miss out on this opportunity to ${cta}. Join thousands of satisfied customers who've already made the switch!"
+
+Use these settings:
+- Voice: af_sarah (professional, confident female voice)
+- Emotion: confident
+- Pacing: presentation
+- Speed: 1.0
+- Save the audio file for marketing campaigns`
+              }
+            }
+          ]
+        };
+
+      case 'create_accessibility_description':
+        const contentType = args?.content_type || 'visual content';
+        const elements = args?.key_elements || 'important visual information';
+        
+        return {
+          description: 'Accessibility audio description',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `Create clear audio description for ${contentType} accessibility. Use voice 'af_sky' with 'neutral' emotion and 'natural' pacing.
+
+Text to synthesize: "Audio description: This ${contentType} shows ${elements}. The visual layout includes these key elements that are important for understanding the content. This description ensures the information is accessible to all users."
+
+Use these settings:
+- Voice: af_sky (clear, bright female voice)
+- Emotion: neutral
+- Pacing: natural
+- Speed: 0.95
+- Save the audio file for accessibility purposes`
+              }
+            }
+          ]
+        };
+
+      default:
+        throw new Error(`Unknown prompt: ${name}`);
     }
   });
 
