@@ -2,6 +2,10 @@
 
 A high-quality, feature-rich Text-to-Speech MCP server with native TypeScript implementation. Designed for professional applications requiring natural, expressive speech synthesis with advanced controls and zero external dependencies.
 
+<a href="https://glama.ai/mcp/servers/@samihalawa/advanced-tts-mcp">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@samihalawa/advanced-tts-mcp/badge" alt="Advanced TTS Server MCP server" />
+</a>
+
 ## ✨ Features
 
 ### 🎯 **Advanced Voice Control**
